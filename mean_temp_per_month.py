@@ -10,20 +10,23 @@ import argparse
 
 
 #--------------------------------------------------------------------
-def day_range(year=2024,month=1):
+def day_range(year=2024,month=1,day=None):
    """
    Determine the yearly day number for the first and last days
    of the selected month. Take into account leap years.
    """
-   last_day  = monthrange(year, month)[1]
+   if(day is None):
+      last_day  = monthrange(year, month)[1]
 
-   first_day = datetime(year, month, 1).timetuple().tm_yday
-   last_day  = datetime(year, month, last_day).timetuple().tm_yday
+      first_day = datetime(year, month, 1).timetuple().tm_yday
+      last_day  = datetime(year, month, last_day).timetuple().tm_yday
 
-   return first_day,last_day
+      return first_day,last_day
+   else:
+      return (datetime(year, month, day).timetuple().tm_yday,)
 
 #--------------------------------------------------------------------
-def read_data(path,year):
+def read_data(path,year=2024):
    # Read the Finland municipalities (as defined in 2021)
    municipalities = geopandas.read_file(path /
             "finland_municipalities_2021.gpkg").to_crs("EPSG:3067")
@@ -45,18 +48,26 @@ def read_data(path,year):
    return municipalities,temp
 
 #--------------------------------------------------------------------
-def extract_month(temp_data,year,month,crs):
-   days = day_range(year,month)
+def extract_month(temp_data,crs,year=2024,month=1,day=None):
+   days = day_range(year,month,day)
 
-   temp_daily = temp_data[days[0]:days[1]]
-   temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
-   temp_daily = temp_daily.where(temp_daily == temp_daily)
-   temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
+   if(len(days)==2):
+      temp_daily = temp_data[days[0]:days[1]]
+      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
+      temp_daily = temp_daily.where(temp_daily == temp_daily)
+      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
 
-   temp_avg = temp_daily.mean(dim='band')
-   temp_avg = temp_avg.rio.write_crs(temp_data.rio.crs)
+      temp_avg = temp_daily.mean(dim='band')
+      temp_avg = temp_avg.rio.write_crs(temp_data.rio.crs)
 
-   return temp_daily,temp_avg
+      return temp_daily,temp_avg
+   else:
+      temp_daily = temp_data[days[0]]
+      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
+      temp_daily = temp_daily.where(temp_daily == temp_daily)
+      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
+
+      return temp_daily,temp_daily
 
 #--------------------------------------------------------------------
 def temperature_by_municipality(municipalities,temp_raster):
@@ -73,7 +84,8 @@ def temperature_by_municipality(municipalities,temp_raster):
    return muni_temp
 
 #--------------------------------------------------------------------
-def plot_temperature_maps(municipalities,temp_avg,year,month):
+def plot_temperature_maps(municipalities,temp_avg,
+         year=2024,month=1,day=None):
    # Reproject to EPSG:4326
    municipalities = municipalities.to_crs("EPSG:4326")
    temp_avg = temp_avg.rio.reproject("EPSG:4326")
@@ -106,7 +118,11 @@ def plot_temperature_maps(municipalities,temp_avg,year,month):
    axs[1].set_xlim(minx, maxx)
    axs[1].set_ylim(miny, maxy)
 
-   fig.suptitle(f"{month_name[month]} {year}")
+
+   if(day is None):
+      fig.suptitle(f"{month_name[month]} {year}")
+   else:
+      fig.suptitle(f"{day:02d} {month_name[month]} {year}")
 
    return fig
 
@@ -115,14 +131,17 @@ def plot_temperature_maps(municipalities,temp_avg,year,month):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--year",  type=int,
+parser.add_argument("--year",  type=int, default=2024,
                     help="Year of interest.")
-parser.add_argument("--month", type=int,
+parser.add_argument("--month", type=int, default=1,
                     help="Month (number) of interest.")
+parser.add_argument("--day", type=int,
+                    help="Day of interest.")
 
 args  = parser.parse_args()
 year  = args.year
 month = args.month
+day   = args.day
 
 
 # Paths definition
@@ -136,7 +155,8 @@ assert temp_data.rio.crs == municipalities.crs, \
             "CRS mismatch between the raster and the GeoDataFrame."
 
 
-temp_daily,temp_avg = extract_month(temp_data,year,month,temp_data.rio.crs)
+temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
+         year,month,day)
 assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
             "CRS mismatch between the rasters."
 
@@ -146,8 +166,12 @@ muni_temp = temperature_by_municipality(municipalities,
 municipalities["temperature"] = muni_temp
 
 
-fig = plot_temperature_maps(municipalities,temp_avg,year,month)
-fig.savefig(FIG_DIRECTORY / 
-            f"Mean_temperature_{month_name[month]}_{year}.png")
+fig = plot_temperature_maps(municipalities,temp_avg,year,month,day)
+if(day is None):
+   fig.savefig(FIG_DIRECTORY / 
+               f"Mean_temperature_{month_name[month]}_{year}.png")
+else:
+   fig.savefig(FIG_DIRECTORY / 
+               f"Mean_temperature_{day:02d}_{month_name[month]}_{year}.png")
 
 
