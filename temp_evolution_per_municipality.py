@@ -1,15 +1,18 @@
 import pathlib
+import argparse
 import pandas as pd
 import geopandas
 import rioxarray
-import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 from calendar import monthrange,month_name
 from datetime import datetime
-import argparse
-from itertools import product
 from tqdm import tqdm
+from itertools import product
+import lmfit
+import fit_functions
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MultipleLocator
 
 
 #--------------------------------------------------------------------
@@ -77,13 +80,7 @@ def temperature_by_municipality(municipalities,temp_raster,
       try:
          clipped_raster = temp_raster.rio.clip(municipality.geometry,
                                  municipality.crs)
-         match quantity:
-            case "mean temperature":
-               muni_temp = np.append(muni_temp,clipped_raster.mean().values)
-            case "minimum temperature":
-               muni_temp = np.append(muni_temp,clipped_raster.min().values)
-            case "maximum temperature":
-               muni_temp = np.append(muni_temp,clipped_raster.max().values)
+         muni_temp = np.append(muni_temp,clipped_raster.mean().values)
       except:
          muni_temp = np.append(muni_temp,np.nan)
 
@@ -107,6 +104,69 @@ def extract_temperatures(municipalities,quantity="mean temperature",
    return muni_temp
 
 #--------------------------------------------------------------------
+def fit_linear(y,x=None,err=None,method='leastsq'):
+   """!
+   Minimize the data points with the selected function
+   
+   @param y: 1D array : data points to fit
+   @param params: lmfit method : list of Gaussian
+   @param err: Float : rms of spectrum to fit
+   @param method: String : minimization method
+   
+   @return lmfit obj
+   """
+   if x is None:
+      x = np.arange(len(y))
+
+   fit_params = lmfit.create_params(
+            coeff={'value': 2, 'min': -10, 'max': 10},
+            const={'value': np.mean(y), 'min': -60, 'max': 40})
+
+   fitter = lmfit.Minimizer(fit_functions.linear,
+               fit_params,fcn_args=(x,y,err))
+   try:
+      fit = fitter.minimize(method=method)
+   except Exception as mes:
+      print("Something wrong with fit: ", mes)
+      raise SystemExit
+
+   model = fit_functions.linear(fit.params,x)
+
+   return model
+
+#--------------------------------------------------------------------
+def fit_exponential(y,x=None,err=None,method='leastsq'):
+   """!
+   Minimize the data points with the selected function
+   
+   @param y: 1D array : data points to fit
+   @param params: lmfit method : list of Gaussian
+   @param err: Float : rms of spectrum to fit
+   @param method: String : minimization method
+   
+   @return lmfit obj
+   """
+   if x is None:
+      x = np.arange(len(y))
+
+   fit_params = lmfit.create_params(
+            amp={'value': 1, 'min': -20, 'max': 20},
+            coeff={'value': 1e-2, 'min': -1, 'max': 1},
+            const={'value': np.mean(y), 'min': -60, 'max': 40})
+
+   fitter = lmfit.Minimizer(fit_functions.exponential,
+               fit_params,fcn_args=(x,y,err))
+   try:
+      fit = fitter.minimize(method=method)
+   except Exception as mes:
+      print("Something wrong with fit: ", mes)
+      raise SystemExit
+
+   model = fit_functions.exponential(fit.params,x)
+
+   return model
+
+#--------------------------------------------------------------------
 def plot_temperature_evolution(temperatures,city,
          year_start=1961,year_end=2024,month=1):
 
@@ -124,21 +184,40 @@ def plot_temperature_evolution(temperatures,city,
    ### Add exponential fit ###
    ###########################
 
-   fig = plt.figure(figsize=(10,7))
+   fig,ax = plt.subplots(figsize=(10,7))
 
-   plt.scatter(year,mean_temp, marker='o', s=8,color='black')
-   plt.scatter(year,min_temp,  marker='o', s=8,color='blue')
-   plt.scatter(year,max_temp,  marker='o', s=8,color='red')
-#   plt.fill_between(year,mean_temp,max_temp,
-#         color='xkcd:deep sky blue',alpha=0.4,linewidth=0)
-#   plt.fill_between(year,min_temp,mean_temp,
-#         color='xkcd:bright red',alpha=0.4,linewidth=0)
+   ax.scatter(year,mean_temp, marker='o', s=8,color='black')
+   model = fit_linear(mean_temp,x=year)
+   ax.plot(year,model,'k--',
+               label='Mean temperature: %+.2f'%(model[-1]-model[0]))
+
+   ax.fill_between(year,min_temp,mean_temp,
+         color='xkcd:deep sky blue',alpha=0.4,linewidth=0)
+#   plt.scatter(year,min_temp,  marker='o', s=8,color='blue')
+   model = fit_linear(min_temp,x=year)
+   ax.plot(year,model,'b--',
+               label='Minimum temperature: %+.2f'%(model[-1]-model[0]))
+
+   ax.fill_between(year,mean_temp,max_temp,
+         color='xkcd:bright red',alpha=0.4,linewidth=0)
+#   plt.scatter(year,max_temp,  marker='o', s=8,color='red')
+   model = fit_linear(max_temp,x=year)
+   ax.plot(year,model,'r--',
+               label='Maximum temperature: %+.2f'%(model[-1]-model[0]))
+
+   ax.legend(loc='lower right')
 
    plt.title(f"Temperature in {month_name[month]} in {city}")
    plt.xlabel("Year")
    plt.ylabel("Temperature (Celsius degrees)")
    plt.xlim([year_start-1,year_end+1])
    plt.ylim([y_min-1,y_max+1])
+
+   ax.tick_params(labelright=True,right=True,which='both')
+   ax.xaxis.set_major_locator(MultipleLocator(10))
+   ax.xaxis.set_minor_locator(MultipleLocator(5))
+   ax.yaxis.set_major_locator(MultipleLocator(5))
+   ax.yaxis.set_minor_locator(MultipleLocator(1))
 
    return fig
 
