@@ -71,8 +71,7 @@ def extract_month(temp_data,crs,year=2024,month=1,day=None):
       return temp_daily,temp_daily
 
 #--------------------------------------------------------------------
-def temperature_by_municipality(municipalities,temp_raster,
-         quantity="mean temperature"):
+def temperature_by_municipality(municipalities,temp_raster):
 
    muni_temp = np.array([])
    for gml_id in municipalities['GML_ID']:
@@ -98,10 +97,9 @@ def extract_temperatures(municipalities,quantity="mean temperature",
    assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
                "CRS mismatch between the rasters."
 
-   muni_temp = temperature_by_municipality(municipalities,temp_daily,
-            quantity)
+   muni_temp = temperature_by_municipality(municipalities,temp_daily)
 
-   return muni_temp
+   return muni_temp,temp_avg
 
 #--------------------------------------------------------------------
 def fit_linear(y,x=None,err=None,method='leastsq'):
@@ -218,6 +216,8 @@ def plot_temperature_evolution(temperatures,city,
    ax.xaxis.set_minor_locator(MultipleLocator(5))
    ax.yaxis.set_major_locator(MultipleLocator(5))
    ax.yaxis.set_minor_locator(MultipleLocator(1))
+   
+   fig.tight_layout()
 
    return fig
 
@@ -259,11 +259,11 @@ temperatures = pd.DataFrame(columns=["year"]+[ f"{quantity}_temp_{city}"
 
 
 for year in tqdm(range(1961,2025,1)):
-   mean_temp = extract_temperatures(municipalities,"mean temperature",
+   mean_temp,map = extract_temperatures(municipalities,"mean temperature",
                      year=year,month=month)
-   min_temp  = extract_temperatures(municipalities,"minimum temperature",
+   min_temp,map  = extract_temperatures(municipalities,"minimum temperature",
                      year=year,month=month)
-   max_temp  = extract_temperatures(municipalities,"maximum temperature",
+   max_temp,map  = extract_temperatures(municipalities,"maximum temperature",
                      year=year,month=month)
 
 
@@ -283,6 +283,6 @@ for city in cities:
    fig = plot_temperature_evolution(temperatures,city,
                   year_start=1961,year_end=2024,month=month)
    fig.savefig(FIG_DIRECTORY / "Temperatures_evolution" /
-               f"Temperature_{month_name[month]}_{city}.png")
+               f"Temperature_{month_name[month]}_{city}.jpg")
 
 
