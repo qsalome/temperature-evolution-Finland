@@ -5,26 +5,16 @@ import base64
 
 from geocube.vector import vectorize
 
-import branca
+import branca.colormap
 from branca.element import MacroElement
 from jinja2 import Template
 
-import argparse
-import pandas as pd
 import geopandas
 import rioxarray
 import xarray as xr
 import numpy as np
 from calendar import monthrange,month_name
 from datetime import datetime
-from tqdm import tqdm
-from itertools import product
-import lmfit
-import fit_functions
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
-import matplotlib.cm as cm
-from folium import IFrame
 
 
 #--------------------------------------------------------------------
@@ -142,45 +132,65 @@ def extract_temperatures(municipalities,quantity="mean temperature",
 #--------------------------------------------------------------------
 def new_image_layer(raster,interactive_map,name="",visible=False,
          year=2024,month=1,day=None):
+
    raster = raster.rio.reproject("EPSG:4326")
    gdf    = vectorize(raster.astype("float32"))
    gdf["id"] = gdf.index.astype(str)
-   boundList = [x for x in raster.rio.bounds()]
-   bounds=[[boundList[1],boundList[0]], [boundList[3],boundList[2]]]
 
-   minmax = float(raster.min().values),float(raster.max().values)
-   print(minmax)
-   raster.attrs['_FillValue']=-9999
-   raster = raster.fillna(value=-9999)
 
-#   layer = folium.raster_layers.ImageOverlay(
-#         image=raster.values,
-#         bounds=[[boundList[1],boundList[0]], [boundList[3],boundList[2]]],
+   if(month==1):
+      colors=branca.colormap.linear.Blues_05.colors
+      invert=[colors[-i-1] for i in range(len(colors))]
+      cmap = branca.colormap.LinearColormap(
+            colors=invert,
+            vmin=-15,vmax=0,
+            caption="Mean temperature")
+      fill_color="Blues_r"
+   else:
+      cmap = branca.colormap.LinearColormap(
+            colors=branca.colormap.linear.YlOrRd_08.colors,
+            vmin=10,vmax=20,
+            caption="Mean temperature")
+      fill_color="YlOrRd"
+
+#   layer = folium.Choropleth(
+#         geo_data=gdf,
+#         data=gdf,
+#         columns=("id","_data"),
+#         key_on="feature.id",
+
+#         bins=10,
+#         fill_color=fill_color,
+##         colormap=cmap,
+#         line_weight=0,
 #         opacity=0.6,
+#         legend_name="Mean temperature",
 #         name=name,
-#         colormap=cm.terrain,
-#         vmin=minmax[0], vmax=minmax[1],#lambda x: get_color(x)
-#         show=visible
+#         show=visible,
+
+##         highlight=True
 #   )
 
-   layer = folium.Choropleth(
-         geo_data=gdf,
-         data=gdf,
-         columns=("id","_data"),
-         key_on="feature.id",
+   temp_dict = gdf.set_index('id')['_data']
 
-         bins=9,
-         fill_color="YlOrRd",
-         line_weight=0,
-         opacity=0.6,
-         legend_name="Mean temperature",
-         name=name,
-         show=visible,
-
-#         highlight=True
+   layer = folium.GeoJson(
+      gdf,
+      style_function=lambda feature: {
+            "fillColor": cmap(temp_dict[feature['id']]),
+            "color": "black",
+            "weight": 0,
+            "fillOpacity": 0.6,
+            },
+      name=name,
+      show=visible
    )
 
-   return layer
+   for child in layer._children:
+        if child.startswith("color_map"):
+            del layer._children[child]
+
+   return layer,cmap
+
 #--------------------------------------------------------------------
 def new_polygon_layer(gdf,name="",image=None,
          year=2024,month=1,day=None):
@@ -255,21 +265,6 @@ interactive_map = folium.Map(
 )
 
 
-YlGn_cmap = branca.colormap.LinearColormap(
-    colors=branca.colormap.linear.YlGn_09.colors,
-    vmin=0,
-    vmax=state_data.Unemployment.max(),  # setting max value for legend
-    caption='Unemployment Rate (%)'
-)
-
-
-YlGn_cmap = branca.colormap.LinearColormap(
-    colors=branca.colormap.linear.YlGn_09.colors,
-    vmin=0,
-    vmax=state_data.Unemployment.max(),  # setting max value for legend
-    caption='Unemployment Rate (%)'
-)
-
 
 # Read the Finland municipalities (as defined in 2021)
 municipalities = geopandas.read_file(DATA_DIRECTORY /
@@ -278,21 +273,31 @@ municipalities = geopandas.read_file(DATA_DIRECTORY /
 
 
 temp_layers = {}
+cmap_layers = {}
 muni_layers = {}
 k1,k2   = 0,0
 visible = True
 
 for month in [1,7]:
-   for year in tqdm([1961,1981,2001,2021]):
+   for year in [1961,1981,2001,2021]:
       mean_temp,map = extract_temperatures(municipalities,"mean temperature",
                         year=year,month=month)
 
 
-      folium_layer = new_image_layer(map,interactive_map.crs,
+      folium_layer,cmap = new_image_layer(map,interactive_map.crs,
                f"{month_name[month]} {year}",
                visible,year,month)
       temp_layers.update({f"{k1}": folium_layer})
-      temp_layers[f"{k1}"].add_to(interactive_map)
+      cmap_layers.update({f"{k1}": cmap})
+
+#      interactive_map.add_child(cmap_layers[f"{k1}"])
+      interactive_map.add_child(temp_layers[f"{k1}"])
+#      temp_layers[f"{k1}"].add_to(interactive_map)
+#      if(k1>=4):
+#         bc = BindColormap(temp_layers[f"{k1}"], cmap_layers["4"])
+#      else:
+#         bc = BindColormap(temp_layers[f"{k1}"], cmap_layers["0"])
+#      interactive_map.add_child(bc)
 
       visible = False
       k1 = k1+1
@@ -308,6 +313,8 @@ for month in [1,7]:
 
    k2 = k2+1
 
+interactive_map.add_child(cmap_layers["0"])
+interactive_map.add_child(cmap_layers["4"])
 
 
 folium.LayerControl(collapsed=False).add_to(interactive_map)
