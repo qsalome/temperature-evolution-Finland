@@ -219,7 +219,10 @@ def plot_temperature_evolution(temperatures,city,
    
    fig.tight_layout()
 
-   return fig
+   temp_evo = model[-1]-model[0]
+#   temp_evo = (100*(model[-1]-model[0])).astype('int')/100
+
+   return fig,temp_evo
 
 #--------------------------------------------------------------------
 
@@ -278,11 +281,23 @@ for year in tqdm(range(1961,2025,1)):
    temperatures = pd.concat([temperatures, new_row], ignore_index=True)
 
 
+temp_evo = np.array([])
 
 for city in cities:
-   fig = plot_temperature_evolution(temperatures,city,
-                  year_start=1961,year_end=2024,month=month)
+   fig,temp = plot_temperature_evolution(temperatures,city,
+                        year_start=1961,year_end=2024,month=month)
+   temp_evo = np.append(temp_evo,f"{temp:+.2}")
    fig.savefig(FIG_DIRECTORY / "Temperatures_evolution" /
                f"Temperature_{month_name[month]}_{city}.jpg")
+
+try:
+   df = geopandas.read_file(DATA_DIRECTORY /
+         "finland_municipalities_temperature_evolution.gpkg"
+         ).to_crs("EPSG:3067")
+except:
+   df = municipalities[["GML_ID","NAMEFIN","NAMESWE","geometry"]]
+df[f"TEMP_EVO_{month_name[month]}"] = temp_evo
+df.to_file(DATA_DIRECTORY /
+      "finland_municipalities_temperature_evolution.gpkg")
 
 
