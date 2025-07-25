@@ -1,29 +1,12 @@
 import pathlib
+import argparse
 import geopandas
 import rioxarray
 import matplotlib.pyplot as plt
-import xarray as xr
-import numpy as np
-from calendar import monthrange,month_name
+from calendar import month_name
 from datetime import datetime
-import argparse
+from geoanalysis_functions import extract_month,temperature_by_municipality
 
-
-#--------------------------------------------------------------------
-def day_range(year=2024,month=1,day=None):
-   """
-   Determine the yearly day number for the first and last days
-   of the selected month. Take into account leap years.
-   """
-   if(day is None):
-      last_day  = monthrange(year, month)[1]
-
-      first_day = datetime(year, month, 1).timetuple().tm_yday
-      last_day  = datetime(year, month, last_day).timetuple().tm_yday
-
-      return first_day,last_day
-   else:
-      return (datetime(year, month, day).timetuple().tm_yday,)
 
 #--------------------------------------------------------------------
 def read_data(path,year=2024):
@@ -46,42 +29,6 @@ def read_data(path,year=2024):
 #            f"tday_{year}.tif").rio.reproject("EPSG:3067")
 
    return municipalities,temp
-
-#--------------------------------------------------------------------
-def extract_month(temp_data,crs,year=2024,month=1,day=None):
-   days = day_range(year,month,day)
-
-   if(len(days)==2):
-      temp_daily = temp_data[days[0]:days[1]]
-      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
-      temp_daily = temp_daily.where(temp_daily == temp_daily)
-      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
-
-      temp_avg = temp_daily.mean(dim='band')
-      temp_avg = temp_avg.rio.write_crs(temp_data.rio.crs)
-
-      return temp_daily,temp_avg
-   else:
-      temp_daily = temp_data[days[0]]
-      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
-      temp_daily = temp_daily.where(temp_daily == temp_daily)
-      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
-
-      return temp_daily,temp_daily
-
-#--------------------------------------------------------------------
-def temperature_by_municipality(municipalities,temp_raster):
-   muni_temp = np.array([])
-   for gml_id in municipalities['GML_ID']:
-      municipality = municipalities[municipalities['GML_ID'] == gml_id]
-      try:
-         clipped_raster = temp_raster.rio.clip(municipality.geometry,
-                                 municipality.crs)
-         muni_temp = np.append(muni_temp,clipped_raster.mean().values)
-      except:
-         muni_temp = np.append(muni_temp,np.nan)
-
-   return muni_temp
 
 #--------------------------------------------------------------------
 def plot_temperature_maps(municipalities,temp_avg,
@@ -155,7 +102,8 @@ assert temp_data.rio.crs == municipalities.crs, \
             "CRS mismatch between the raster and the GeoDataFrame."
 
 
-temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
+temp_daily,temp_avg = extract_month(
+         temp_data,temp_data.rio.crs,
          year,month,day)
 assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
             "CRS mismatch between the rasters."
