@@ -17,6 +17,8 @@ def read_data(quantity="mean temperature",year=2024):
          url += f"10km_daily_minimum_temperature/geotiff/tmin_{year}.tif"
       case "maximum temperature":
          url += f"10km_daily_maximum_temperature/geotiff/tmax_{year}.tif"
+      case "precipitation":
+         url += f"10km_daily_precipitation/geotiff/rrday_{year}.tif"
 
    temp = rioxarray.open_rasterio(url).rio.reproject("EPSG:3067")
 
@@ -39,26 +41,31 @@ def day_range(year=2024,month=1,day=None):
       return (datetime(year, month, day).timetuple().tm_yday,)
 
 #--------------------------------------------------------------------
-def extract_month(temp_data,crs,year=2024,month=1,day=None):
+def extract_month(data,crs,quantity="mean temperature",
+         year=2024,month=1,day=None):
    days = day_range(year,month,day)
 
    if(len(days)==2):
-      temp_daily = temp_data[days[0]:days[1]]
-      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
-      temp_daily = temp_daily.where(temp_daily == temp_daily)
-      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
+      data_daily = data[days[0]:days[1]+1]
+      data_daily = xr.where(data_daily >= -1e30, data_daily, np.nan)
+      data_daily = data_daily.where(data_daily == data_daily)
+      data_daily = data_daily.rio.write_crs(data.rio.crs)
 
-      temp_avg = temp_daily.mean(dim='band')
-      temp_avg = temp_avg.rio.write_crs(temp_data.rio.crs)
+      if(quantity=="precipitation"):
+         monthly = data_daily.sum(dim='band')
+         monthly = monthly.rio.write_crs(data.rio.crs)
+      else:
+         monthly = data_daily.mean(dim='band')
+         monthly = monthly.rio.write_crs(data.rio.crs)
 
-      return temp_daily,temp_avg
+      return data_daily,monthly
    else:
-      temp_daily = temp_data[days[0]]
-      temp_daily = xr.where(temp_daily >= -1e30, temp_daily, np.nan)
-      temp_daily = temp_daily.where(temp_daily == temp_daily)
-      temp_daily = temp_daily.rio.write_crs(temp_data.rio.crs)
+      data_daily = data[days[0]]
+      data_daily = xr.where(data_daily >= -1e30, data_daily, np.nan)
+      data_daily = data_daily.where(data_daily == data_daily)
+      data_daily = data_daily.rio.write_crs(data.rio.crs)
 
-      return temp_daily,temp_daily
+      return data_daily,data_daily
 
 #--------------------------------------------------------------------
 def temperature_by_municipality(municipalities,temp_raster):
@@ -82,14 +89,44 @@ def extract_temperatures(municipalities,quantity="mean temperature",
                "CRS mismatch between the raster and the GeoDataFrame."
 
    temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
-            year,month,day)
+            quantity,year,month,day)
    assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
                "CRS mismatch between the rasters."
 
-   muni_temp = temperature_by_municipality(
-            municipalities,temp_daily)
+   muni_temp = temperature_by_municipality(municipalities,temp_daily)
 
    return muni_temp,temp_avg
+
+#--------------------------------------------------------------------
+def precipitations_by_municipality(municipalities,rain_raster):
+   muni_rain = np.array([])
+   for gml_id in municipalities['GML_ID']:
+      municipality = municipalities[municipalities['GML_ID'] == gml_id]
+      try:
+         clipped_raster = rain_raster.rio.clip(municipality.geometry,
+                                 municipality.crs)
+         rain_per_area = clipped_raster.sum().values/municipality.area
+         muni_rain = np.append(muni_rain,rain_per_area)
+      except:
+         muni_rain = np.append(muni_rain,np.nan)
+
+   return muni_rain
+
+#--------------------------------------------------------------------
+def extract_precipitations(municipalities,quantity="precipitations",
+         year=2024,month=1,day=None):
+   rain_data = read_data(quantity,year)
+   assert rain_data.rio.crs == municipalities.crs, \
+               "CRS mismatch between the raster and the GeoDataFrame."
+
+   rain_daily,rain_monthly = extract_month(rain_data,rain_data.rio.crs,
+            quantity,year,month,day)
+   assert rain_data.rio.crs == rain_daily.rio.crs == rain_monthly.rio.crs, \
+               "CRS mismatch between the rasters."
+
+   muni_rain = precipitations_by_municipality(municipalities,rain_daily)
+
+   return muni_rain,rain_monthly
 
 #--------------------------------------------------------------------
 
