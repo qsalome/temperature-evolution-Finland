@@ -204,12 +204,13 @@ for city in cities:
 
 try:
    df = geopandas.read_file(DATA_DIRECTORY /
-         "finland_municipalities_temperature_evolution.gpkg"
+         "finland_municipalities_weather_evolution.gpkg"
          ).to_crs("EPSG:3067")
 except:
-   df = municipalities[["GML_ID","NAMEFIN","NAMESWE","geometry"]]
+   df = municipalities[["GML_ID","NAMEFIN","NAMESWE",
+               "LANDAREA","TOTALAREA","geometry"]]
 df[f"TEMP_EVO_{month_name[month]}"] = temp_evo
 df.to_file(DATA_DIRECTORY /
-      "finland_municipalities_temperature_evolution.gpkg")
+      "finland_municipalities_weather_evolution.gpkg")
 
 
