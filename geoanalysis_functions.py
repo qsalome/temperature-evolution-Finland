@@ -17,12 +17,12 @@ def read_data(quantity="mean temperature",year=2024):
          url += f"10km_daily_minimum_temperature/geotiff/tmin_{year}.tif"
       case "maximum temperature":
          url += f"10km_daily_maximum_temperature/geotiff/tmax_{year}.tif"
-      case "precipitation":
+      case "precipitations":
          url += f"10km_daily_precipitation/geotiff/rrday_{year}.tif"
 
-   temp = rioxarray.open_rasterio(url).rio.reproject("EPSG:3067")
+   data = rioxarray.open_rasterio(url).rio.reproject("EPSG:3067")
 
-   return temp
+   return data
 
 #--------------------------------------------------------------------
 def day_range(year=2024,month=1,day=None):
@@ -51,7 +51,7 @@ def extract_month(data,crs,quantity="mean temperature",
       data_daily = data_daily.where(data_daily == data_daily)
       data_daily = data_daily.rio.write_crs(data.rio.crs)
 
-      if(quantity=="precipitation"):
+      if(quantity=="precipitations"):
          monthly = data_daily.sum(dim='band')
          monthly = monthly.rio.write_crs(data.rio.crs)
       else:
@@ -105,8 +105,8 @@ def precipitations_by_municipality(municipalities,rain_raster):
       try:
          clipped_raster = rain_raster.rio.clip(municipality.geometry,
                                  municipality.crs)
-         rain_per_area = clipped_raster.sum().values/municipality.area
-         muni_rain = np.append(muni_rain,rain_per_area)
+         rain_avg  = clipped_raster.mean().values#/100
+         muni_rain = np.append(muni_rain,rain_avg)
       except:
          muni_rain = np.append(muni_rain,np.nan)
 
@@ -124,7 +124,7 @@ def extract_precipitations(municipalities,quantity="precipitations",
    assert rain_data.rio.crs == rain_daily.rio.crs == rain_monthly.rio.crs, \
                "CRS mismatch between the rasters."
 
-   muni_rain = precipitations_by_municipality(municipalities,rain_daily)
+   muni_rain = precipitations_by_municipality(municipalities,rain_monthly)
 
    return muni_rain,rain_monthly
 
