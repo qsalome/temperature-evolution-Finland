@@ -214,6 +214,12 @@ FIG_DIRECTORY  = NOTEBOOK_PATH / "figures"
 HTML_DIRECTORY = NOTEBOOK_PATH / "html"
 
 
+copyright  = 'Temperature data (c) <a href="https://en.ilmatieteenlaitos.fi/">'
+copyright += 'Finnish Meteorological Institute</a> & '
+copyright += '<a href="https://paituli.csc.fi/download.html">Paituli</a>, '
+copyright += 'Map data (c) <a href="http://www.openstreetmap.org/copyright">'
+copyright += 'OpenStreetMap</a> contributors.'
+
 # Initial map
 interactive_map = folium.Map(
     max_bounds=True,
@@ -223,7 +229,8 @@ interactive_map = folium.Map(
     max_lat=70.1,
     min_lon=21.2,
     max_lon=31.6,
-    interactive=True
+    interactive=True,
+    attr = copyright
 )
 
 
