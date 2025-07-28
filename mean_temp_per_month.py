@@ -89,6 +89,7 @@ args  = parser.parse_args()
 year  = args.year
 month = args.month
 day   = args.day
+print(month)
 
 
 # Paths definition
@@ -102,9 +103,8 @@ assert temp_data.rio.crs == municipalities.crs, \
             "CRS mismatch between the raster and the GeoDataFrame."
 
 
-temp_daily,temp_avg = extract_month(
-         temp_data,temp_data.rio.crs,
-         year,month,day)
+temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
+         year=year,month=month,day=day)
 assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
             "CRS mismatch between the rasters."
 
