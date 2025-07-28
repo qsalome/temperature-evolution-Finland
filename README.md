@@ -2,7 +2,7 @@
 
 This project enables to analyse geospatial data to study the evolution of the
 temperature. While the project was originally based on data from the Finnish
-Meteorological Institute (https://en.ilmatieteenlaitos.fi/), it should
+Meteorological Institute (FMI: https://en.ilmatieteenlaitos.fi/), it should
 be able to use it to analyse similar data from other countries.
 
 ## Install
@@ -10,9 +10,12 @@ be able to use it to analyse similar data from other countries.
 The project is based on Python 3.10. I recommend to use conda and the provided
 `environment.yml` file:
 
-.. code:: shell
-
     $ conda env create -f environment.yml
+
+## Data
+
+The project uses 10x10 km raster data from the FMI that are access the open
+spatial data download service Paituli (https://paituli.csc.fi/home.html).
 
 ## Simple example
 
@@ -35,6 +38,8 @@ To create an interactive map showing the mean temperature in Finland in
 January and July for the year 1961, 1981, 2001 and 2021:
 
     $ python interactive_map.py
+
+html/map_temperature_municipalities.html
 
 
 ## Bugs and development
