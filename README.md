@@ -40,7 +40,7 @@ January and July for the year 1961, 1981, 2001 and 2021:
 
     $ python interactive_map.py
 
-The html file can be seen and explore
+The html file can be seen and explored
 [here](html/map_temperature_municipalities.html)
 
 
