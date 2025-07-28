@@ -7,6 +7,21 @@ from datetime import datetime
 
 #--------------------------------------------------------------------
 def read_data(quantity="mean temperature",year=2024):
+   """
+   Read, reproject and return the requested raster data.
+   
+   Parameters
+   ----------
+   quantity: str
+         data set to be read
+   year: int
+         year of interest for the data set
+
+   Returns
+   -------
+   xarray.core.dataarray.DataArray
+        3d raster data reprojected to EPSG:3067
+   """
    # Load the raster and reproject it to EPSG:3067
    url  = "https://www.nic.funet.fi/index/geodata/ilmatiede/"
 
@@ -29,6 +44,21 @@ def day_range(year=2024,month=1,day=None):
    """
    Determine the yearly day number for the first and last days
    of the selected month. Take into account leap years.
+   
+   Parameters
+   ----------
+   year: int
+         year of interest
+   month: int
+         month of interest
+   day: int
+         if specify, returns only one value
+
+   Returns
+   -------
+   tuple
+         Yearly day numbers for the first and last days of the month,
+         or for the specified day.
    """
    if(day is None):
       last_day  = monthrange(year, month)[1]
@@ -41,8 +71,31 @@ def day_range(year=2024,month=1,day=None):
       return (datetime(year, month, day).timetuple().tm_yday,)
 
 #--------------------------------------------------------------------
-def extract_month(data,crs,quantity="mean temperature",
+def extract_month(data,quantity="mean temperature",
          year=2024,month=1,day=None):
+   """
+   Extract a subset of the data corresponding to the period of interest.
+   
+   Parameters
+   ----------
+   data: xarray.core.dataarray.DataArray
+         Input raster data for the full year
+   quantity: str
+         data set to consider
+   year: int
+         year of interest
+   month: int
+         month of interest
+   day: int
+         day of interest (if specified)
+
+   Returns
+   -------
+   data_daily: xarray.core.dataarray.DataArray
+         3d daily raster data for the period of interest (month or day).
+   monthly: xarray.core.dataarray.DataArray
+         2d raster data of the average or sum over the period of interest.
+   """
    days = day_range(year,month,day)
 
    if(len(days)==2):
@@ -69,6 +122,22 @@ def extract_month(data,crs,quantity="mean temperature",
 
 #--------------------------------------------------------------------
 def temperature_by_municipality(municipalities,temp_raster):
+   """
+   Extract the area of the raster data corresponding to each municipality
+   and calculate the mean value.
+   
+   Parameters
+   ----------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest
+   temp_raster: xarray.core.dataarray.DataArray
+         2d or 3d raster data to analyse
+
+   Returns
+   -------
+   numpy.ndarray
+         Average value within each municipalities.
+   """
    muni_temp = np.array([])
    for gml_id in municipalities['GML_ID']:
       municipality = municipalities[municipalities['GML_ID'] == gml_id]
@@ -84,12 +153,35 @@ def temperature_by_municipality(municipalities,temp_raster):
 #--------------------------------------------------------------------
 def extract_temperatures(municipalities,quantity="mean temperature",
          year=2024,month=1,day=None):
+   """
+   Read the raster data, extract the period of interest and calculate
+   the mean value within each municipality.
+   
+   Parameters
+   ----------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest
+   quantity: str
+         data set to consider
+   year: int
+         year of interest
+   month: int
+         month of interest
+   day: int
+         day of interest (if specified)
+
+   Returns
+   -------
+   muni_temp: numpy.ndarray
+         Average monthly temperature within each municipalities.
+   temp_avg: xarray.core.dataarray.DataArray
+         2d raster data over the period of interest
+   """
    temp_data = read_data(quantity,year)
    assert temp_data.rio.crs == municipalities.crs, \
                "CRS mismatch between the raster and the GeoDataFrame."
 
-   temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
-            quantity,year,month,day)
+   temp_daily,temp_avg = extract_month(temp_data,quantity,year,month,day)
    assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
                "CRS mismatch between the rasters."
 
@@ -99,13 +191,29 @@ def extract_temperatures(municipalities,quantity="mean temperature",
 
 #--------------------------------------------------------------------
 def precipitations_by_municipality(municipalities,rain_raster):
+   """
+   Extract the area of the raster data corresponding to each municipality
+   and calculate the mean value.
+   
+   Parameters
+   ----------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest
+   rain_raster: xarray.core.dataarray.DataArray
+         2d or 3d raster data to analyse
+
+   Returns
+   -------
+   numpy.ndarray
+         Average value within each municipalities.
+   """
    muni_rain = np.array([])
    for gml_id in municipalities['GML_ID']:
       municipality = municipalities[municipalities['GML_ID'] == gml_id]
       try:
          clipped_raster = rain_raster.rio.clip(municipality.geometry,
                                  municipality.crs)
-         rain_avg  = clipped_raster.mean().values#/100
+         rain_avg  = clipped_raster.mean().values
          muni_rain = np.append(muni_rain,rain_avg)
       except:
          muni_rain = np.append(muni_rain,np.nan)
@@ -115,12 +223,35 @@ def precipitations_by_municipality(municipalities,rain_raster):
 #--------------------------------------------------------------------
 def extract_precipitations(municipalities,quantity="precipitations",
          year=2024,month=1,day=None):
+   """
+   Read the raster data, extract the period of interest and calculate
+   the mean value within each municipality.
+   
+   Parameters
+   ----------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest
+   quantity: str
+         data set to consider
+   year: int
+         year of interest
+   month: int
+         month of interest
+   day: int
+         day of interest (if specified)
+
+   Returns
+   -------
+   muni_rain: numpy.ndarray
+         Average monthly precipitation within each municipalities.
+   temp_avg: xarray.core.dataarray.DataArray
+         2d raster data over the period of interest
+   """
    rain_data = read_data(quantity,year)
    assert rain_data.rio.crs == municipalities.crs, \
                "CRS mismatch between the raster and the GeoDataFrame."
 
-   rain_daily,rain_monthly = extract_month(rain_data,rain_data.rio.crs,
-            quantity,year,month,day)
+   rain_daily,rain_monthly = extract_month(rain_data,quantity,year,month,day)
    assert rain_data.rio.crs == rain_daily.rio.crs == rain_monthly.rio.crs, \
                "CRS mismatch between the rasters."
 

@@ -4,17 +4,24 @@ import lmfit
 
 #--------------------------------------------------------------------
 def linear(pars,x,data=None,eps=None):
-    """!
-    Compute model, residual with and without errors
-    
-    @param pars: lmfit method : parameters of the function
-    @param x: 1D array : velocity in channel unit
-    @param data: 1D array : spectrum / Brightness Temperature
-    @param eps: 1D array : errors
-    
-    @return model if data is None \n
-    model - data if eps is None \n
-    (model - data) / eps else
+    """
+    Compute model, residual with and without errors for a linear function
+   
+   Parameters
+   ----------
+   pars: lmfit method
+         parameters of the function
+   x: 1D array
+         data points of the independant variable
+   data: 1D array
+         data points on the dependant variable
+   eps: 1D array
+         errors on the dependant variable
+
+   Returns
+   -------
+   1D array
+         data points of the model or the residual with or without errors
     """
     parvals = pars.valuesdict()
     coeff = parvals['coeff']
@@ -30,17 +37,24 @@ def linear(pars,x,data=None,eps=None):
 
 #--------------------------------------------------------------------
 def exponential(pars,x,data=None,eps=None):
-    """!
-    Compute model, residual with and without errors
-    
-    @param pars: lmfit method : parameters of the function
-    @param x: 1D array : velocity in channel unit
-    @param data: 1D array : spectrum / Brightness Temperature
-    @param eps: 1D array : errors
-    
-    @return model if data is None \n
-    model - data if eps is None \n
-    (model - data) / eps else
+    """
+    Compute model, residual with and without errors for an exponential function
+   
+   Parameters
+   ----------
+   pars: lmfit method
+         parameters of the function
+   x: 1D array
+         data points of the independant variable
+   data: 1D array
+         data points on the dependant variable
+   eps: 1D array
+         errors on the dependant variable
+
+   Returns
+   -------
+   1D array
+         data points of the model or the residual with or without errors
     """
     parvals = pars.valuesdict()
     amp   = parvals['amp']

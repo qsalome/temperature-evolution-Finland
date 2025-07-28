@@ -10,6 +10,23 @@ from geoanalysis_functions import extract_month,temperature_by_municipality
 
 #--------------------------------------------------------------------
 def read_data(path,year=2024):
+   """
+   Read the data for the year of interest.
+   
+   Parameters
+   ----------
+   path: str
+         Path of the data folder
+   year: int
+         year of interest
+
+   Returns
+   -------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities with geospatial information reprojected to EPSG:3067
+   temp: xarray.core.dataarray.DataArray
+         3d raster data reprojected to EPSG:3067
+   """
    # Read the Finland municipalities (as defined in 2021)
    municipalities = geopandas.read_file(path /
             "finland_municipalities_2021.gpkg").to_crs("EPSG:3067")
@@ -33,6 +50,28 @@ def read_data(path,year=2024):
 #--------------------------------------------------------------------
 def plot_temperature_maps(municipalities,temp_avg,
          year=2024,month=1,day=None):
+   """
+   Read the data for the year of interest.
+   
+   Parameters
+   ----------
+   municipalities: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest
+   temp_avg: xarray.core.dataarray.DataArray
+         2d raster data over the period of interest
+   year: int
+         year of interest
+   month: int
+         month of interest
+   day: int
+         day of interest (if specified)
+
+   Returns
+   -------
+   matplotlib.figure.Figure
+         Map of the 2d raster data with the contours of the municipalities,
+         and map of the mean temperature within each municipality.
+   """
    # Reproject to EPSG:4326
    municipalities = municipalities.to_crs("EPSG:4326")
    temp_avg = temp_avg.rio.reproject("EPSG:4326")
@@ -89,7 +128,6 @@ args  = parser.parse_args()
 year  = args.year
 month = args.month
 day   = args.day
-print(month)
 
 
 # Paths definition
@@ -103,14 +141,12 @@ assert temp_data.rio.crs == municipalities.crs, \
             "CRS mismatch between the raster and the GeoDataFrame."
 
 
-temp_daily,temp_avg = extract_month(temp_data,temp_data.rio.crs,
-         year=year,month=month,day=day)
+temp_daily,temp_avg = extract_month(temp_data,year=year,month=month,day=day)
 assert temp_data.rio.crs == temp_daily.rio.crs == temp_avg.rio.crs, \
             "CRS mismatch between the rasters."
 
 
-muni_temp = temperature_by_municipality(municipalities,
-         temp_daily)
+muni_temp = temperature_by_municipality(municipalities,temp_daily)
 municipalities["temperature"] = muni_temp
 
 

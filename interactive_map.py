@@ -44,8 +44,33 @@ class BindColormap(MacroElement):
         """)
 
 #--------------------------------------------------------------------
-def new_image_layer(raster,interactive_map,name="",visible=False,
+def new_image_layer(raster,name="",visible=False,
          year=2024,month=1,day=None):
+   """
+   Produce a new layer based on raster data
+   
+   Parameters
+   ----------
+   raster: xarray.core.dataarray.DataArray
+         2d raster data to include
+   name: str
+         Name of the layer
+   visible: boolean
+         Define if the layer will be displayed when opening the map
+   year: int
+         year to be added in name
+   month: int
+         month to be added in name
+   day: int
+         day to be added in name
+
+   Returns
+   -------
+   layer: folium.features.GeoJson
+         layer to be added to the interactive map
+   cmap: branca.colormap.LinearColormap
+         corresponding color map
+   """
 
    raster = raster.rio.reproject("EPSG:4326")
    gdf    = vectorize(raster.astype("float32"))
@@ -108,6 +133,29 @@ def new_image_layer(raster,interactive_map,name="",visible=False,
 #--------------------------------------------------------------------
 def new_polygon_layer(gdf,name="",image=None,
          year=2024,month=1,day=None):
+   """
+   Produce a polygon layer based on a GeoDataFrame
+   
+   Parameters
+   ----------
+   gdf: geopandas.geodataframe.GeoDataFrame
+         Municipalities of interest with temperatures information
+   name: str
+         Name of the layer
+   image: str
+         Path of the image to be included in a popup
+   year: int
+         year to be added in name
+   month: int
+         month to be added in name
+   day: int
+         day to be added in name
+
+   Returns
+   -------
+   folium.features.GeoJson
+         layer to be added to the interactive map
+   """
 
    if image is not None:
       popup_html = np.array([])
@@ -182,7 +230,7 @@ interactive_map = folium.Map(
 
 # Read the Finland municipalities (as defined in 2021)
 municipalities = geopandas.read_file(DATA_DIRECTORY /
-         "finland_municipalities_temperature_evolution.gpkg"
+         "finland_municipalities_weather_evolution.gpkg"
          ).to_crs("EPSG:3067")
 
 
@@ -198,8 +246,7 @@ for month in [1,7]:
                         year=year,month=month)
 
 
-      folium_layer,cmap = new_image_layer(map,interactive_map.crs,
-               f"{month_name[month]} {year}",
+      folium_layer,cmap = new_image_layer(map,f"{month_name[month]} {year}",
                visible,year,month)
       temp_layers.update({f"{k1}": folium_layer})
       cmap_layers.update({f"{k1}": cmap})

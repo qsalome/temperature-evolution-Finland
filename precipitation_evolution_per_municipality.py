@@ -15,15 +15,24 @@ from matplotlib.ticker import MultipleLocator
 
 #--------------------------------------------------------------------
 def fit_linear(y,x=None,err=None,method='leastsq'):
-   """!
-   Minimize the data points with the selected function
+   """
+   Minimize the data points with a linear function (linear regression)
    
-   @param y: 1D array : data points to fit
-   @param params: lmfit method : list of Gaussian
-   @param err: Float : rms of spectrum to fit
-   @param method: String : minimization method
-   
-   @return lmfit obj
+   Parameters
+   ----------
+   y: 1D array
+         data points of the dependant variable
+   x: 1D array
+         data points of the independant variable
+   err: 1D array
+         errors on the dependant variable
+   method: str
+         minimization method
+
+   Returns
+   -------
+   1D array
+         data points of the results of the linear regression
    """
    if x is None:
       x = np.arange(len(y))
@@ -45,40 +54,29 @@ def fit_linear(y,x=None,err=None,method='leastsq'):
    return model
 
 #--------------------------------------------------------------------
-def fit_exponential(y,x=None,err=None,method='leastsq'):
-   """!
-   Minimize the data points with the selected function
-   
-   @param y: 1D array : data points to fit
-   @param params: lmfit method : list of Gaussian
-   @param err: Float : rms of spectrum to fit
-   @param method: String : minimization method
-   
-   @return lmfit obj
-   """
-   if x is None:
-      x = np.arange(len(y))
-
-   fit_params = lmfit.create_params(
-            amp={'value': 1, 'min': -20, 'max': 20},
-            coeff={'value': 1e-2, 'min': -1, 'max': 1},
-            const={'value': np.mean(y), 'min': -60, 'max': 40})
-
-   fitter = lmfit.Minimizer(fit_functions.exponential,
-               fit_params,fcn_args=(x,y,err))
-   try:
-      fit = fitter.minimize(method=method)
-   except Exception as mes:
-      print("Something wrong with fit: ", mes)
-      raise SystemExit
-
-   model = fit_functions.exponential(fit.params,x)
-
-   return model
-
-#--------------------------------------------------------------------
 def plot_precipitations_evolution(precipitations,city,
          year_start=1961,year_end=2024,month=1):
+   """
+   Plot the evolution of the mean precipitation within a municipality.
+   
+   Parameters
+   ----------
+   precipitation: geopandas.geodataframe.GeoDataFrame
+         monthly mean precipitations between 1961 and 2024
+   city: str
+         name of the municipality of interest
+   year_start: int
+         beginning of the period to plot
+   year_end: int
+         end of the period to plot
+   month: int
+         month of interest
+
+   Returns
+   -------
+   matplotlib.figure.Figure
+         Evolution of the mean precipitations in the municipality.
+   """
 
    # Read the temperature for the selected city
    year = np.array(precipitations["year"]).astype(int)
