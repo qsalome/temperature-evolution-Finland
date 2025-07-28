@@ -3,7 +3,8 @@
 This project enables to analyse geospatial data to study the evolution of the
 temperature. While the project was originally based on data from the Finnish
 Meteorological Institute (FMI: https://en.ilmatieteenlaitos.fi/), it should
-be able to use it to analyse similar data from other countries.
+be able to use it to analyse similar data from other countries. The GitHub
+repository is [here](https://github.com/qsalome/temperature-evolution-Finland).
 
 ## Install
 
@@ -39,7 +40,7 @@ January and July for the year 1961, 1981, 2001 and 2021:
 
     $ python interactive_map.py
 
-The html file can be downloaded
+The html file can be seen and explore
 [here](html/map_temperature_municipalities.html)
 
 
