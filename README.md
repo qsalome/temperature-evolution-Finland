@@ -45,9 +45,10 @@ January and July for the year 1961, 1981, 2001 and 2021:
 
 ## Bugs and development
 
-I welcome all changes/ideas, big or small, that aim at improving the projects.
-Feel free to fork the repository on GitHub and create pull requests.
+I welcome all changes/ideas/suggestion, big or small, that aim at improving
+the projects. Feel free to fork the repository on GitHub and create pull
+requests.
 Please report any bugs that you find
-[here](https://github.com/qsalome/temperature-evolution-Finland/issues). Or, even better, fork the repository on GitHub and create a pull request (PR). We welcome all changes, big or small, and we will help you make the PR if you are new to git (just ask on the issue and/or see the contributor guide).
+[here](https://github.com/qsalome/temperature-evolution-Finland/issues).
 
 
