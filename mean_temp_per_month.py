@@ -48,7 +48,7 @@ def read_data(path,year=2024):
    return municipalities,temp
 
 #--------------------------------------------------------------------
-def plot_temperature_maps(municipalities,temp_avg,vmin=0,vmax=30,
+def plot_temperature_maps(municipalities,temp_avg,vmin=None,vmax=None,
          year=2024,month=1,day=None):
    """
    Read the data for the year of interest.
@@ -157,7 +157,7 @@ muni_temp = temperature_by_municipality(municipalities,temp_daily)
 municipalities["temperature"] = muni_temp
 
 
-fig = plot_temperature_maps(municipalities,temp_avg,vmin=10,vmax=20,
+fig = plot_temperature_maps(municipalities,temp_avg,vmin=vmin,vmax=vmax,
          year=year,month=month,day=day)
 if(day is None):
    fig.savefig(FIG_DIRECTORY / 
