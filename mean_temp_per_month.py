@@ -48,7 +48,7 @@ def read_data(path,year=2024):
    return municipalities,temp
 
 #--------------------------------------------------------------------
-def plot_temperature_maps(municipalities,temp_avg,
+def plot_temperature_maps(municipalities,temp_avg,vmin=0,vmax=30,
          year=2024,month=1,day=None):
    """
    Read the data for the year of interest.
@@ -81,7 +81,8 @@ def plot_temperature_maps(municipalities,temp_avg,
 
    fig, axs = plt.subplots(1, 2, figsize=(10,7))
 
-   im = temp_avg.plot(ax=axs[0], cmap='terrain', add_colorbar=True)
+   im = temp_avg.plot(ax=axs[0], cmap='terrain', vmin=vmin,vmax=vmax,
+            add_colorbar=True)
    municipalities.boundary.plot(ax=axs[0], color='k', alpha=0.25)
 
    colorbar = im.colorbar
@@ -95,7 +96,7 @@ def plot_temperature_maps(municipalities,temp_avg,
 
 
    municipalities.plot(ax=axs[1], column="temperature", cmap="terrain",
-          linewidth=0,  legend=True,
+          vmin=vmin,vmax=vmax, linewidth=0,  legend=True,
           legend_kwds={"label": "Mean temperature (Celsius degrees)"}
           )
    axs[1].set_title('By municipality')
@@ -123,11 +124,17 @@ parser.add_argument("--month", type=int, default=1,
                     help="Month (number) of interest.")
 parser.add_argument("--day", type=int,
                     help="Day of interest.")
+parser.add_argument("--vmin", type=float,
+                    help="Minimum of colorscale.")
+parser.add_argument("--vmax", type=float,
+                    help="Maximum of colorscale.")
 
 args  = parser.parse_args()
 year  = args.year
 month = args.month
 day   = args.day
+vmin  = args.vmin
+vmax  = args.vmax
 
 
 # Paths definition
@@ -150,7 +157,8 @@ muni_temp = temperature_by_municipality(municipalities,temp_daily)
 municipalities["temperature"] = muni_temp
 
 
-fig = plot_temperature_maps(municipalities,temp_avg,year,month,day)
+fig = plot_temperature_maps(municipalities,temp_avg,vmin=10,vmax=20,
+         year=year,month=month,day=day)
 if(day is None):
    fig.savefig(FIG_DIRECTORY / 
                f"Mean_temperature_{month_name[month]}_{year}.png")
