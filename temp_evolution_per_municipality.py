@@ -130,9 +130,6 @@ def plot_temperature_evolution(temperatures,city,
    y_min    = temperatures.loc[:,colnames.str.contains("min_")].min(axis=None)
    y_max    = temperatures.loc[:,colnames.str.contains("max_")].max(axis=None)
 
-   ###########################
-   ### Add exponential fit ###
-   ###########################
 
    fig,ax = plt.subplots(figsize=(10,7))
 
@@ -140,6 +137,10 @@ def plot_temperature_evolution(temperatures,city,
    model = fit_linear(mean_temp,x=year)
    ax.plot(year,model,'k--',
                label='Mean temperature: %+.2f'%(model[-1]-model[0]))
+
+   temp_evo = model[-1]-model[0]
+#   temp_evo = (100*(model[-1]-model[0])).astype('int')/100
+
 
    ax.fill_between(year,min_temp,mean_temp,
          color='xkcd:deep sky blue',alpha=0.4,linewidth=0)
@@ -168,11 +169,8 @@ def plot_temperature_evolution(temperatures,city,
    ax.xaxis.set_minor_locator(MultipleLocator(5))
    ax.yaxis.set_major_locator(MultipleLocator(5))
    ax.yaxis.set_minor_locator(MultipleLocator(1))
-   
-   fig.tight_layout()
 
-   temp_evo = model[-1]-model[0]
-#   temp_evo = (100*(model[-1]-model[0])).astype('int')/100
+   fig.tight_layout()
 
    return fig,temp_evo
 

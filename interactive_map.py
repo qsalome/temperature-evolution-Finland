@@ -73,6 +73,7 @@ def new_image_layer(raster,name="",visible=False,
    """
 
    raster = raster.rio.reproject("EPSG:4326")
+   raster = raster.rename("raster")
    gdf    = vectorize(raster.astype("float32"))
    gdf["id"] = gdf.index.astype(str)
 
@@ -110,7 +111,7 @@ def new_image_layer(raster,name="",visible=False,
 ##         highlight=True
 #   )
 
-   temp_dict = gdf.set_index('id')['_data']
+   temp_dict = gdf.set_index('id')['raster']
 
    layer = folium.GeoJson(
       gdf,
